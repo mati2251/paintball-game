@@ -1,11 +1,11 @@
-SOURCES=$(main.c)
-HEADERS=$()
+SOURCES=main.c packet.c
+HEADERS=packet.h log.h
 FLAGS=-g
 
 all: main 
 
 build: $(SOURCES) $(HEADERS) Makefile
-	mpicc main.c -o main
+	mpicc $(SOURCES) -o main
 
 clean:
 	rm main 
@@ -14,7 +14,7 @@ run: build
 	mpirun -oversubscribe -np 8 ./main
 
 build_debug: $(SOURCES) $(HEADERS) Makefile
-	mpicc $(FLAGS) main.c -o main -DDEBUG -Wall -Wextra -Werror -g
+	mpicc $(FLAGS) $(SOURCES) -o main -DDEBUG -Wall -Wextra -Werror -g
 
 run_debug: build_debug
-	mpirun -oversubscribe -np 8 ./main
+	mpirun -oversubscribe -np 4 ./main
