@@ -1,5 +1,5 @@
-SOURCES=main.c packet.c
-HEADERS=packet.h log.h
+SOURCES=main.c packet.c recv.c utils.c
+HEADERS=packet.h log.h recv.h global.h utils.h
 FLAGS=-g
 
 all: main 

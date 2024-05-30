@@ -2,10 +2,9 @@
 #include "log.h"
 #include <pthread.h>
 #include <stddef.h>
-#include <stdio.h>
 
 int lamport_clock = 0;
-pthread_mutex_t clock_mutex; 
+pthread_mutex_t clock_mutex;
 pthread_mutex_t send_mutex;
 MPI_Datatype MPI_PACKET;
 
@@ -30,11 +29,7 @@ void init_packet_type() {
   MPI_Type_create_struct(3, blocklengths, offsets, typy, &MPI_PACKET);
 
   MPI_Type_commit(&MPI_PACKET);
-
-  clock_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-  send_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 }
-
 
 int get_packet(struct packet *message, int tag) {
   MPI_Status status;
@@ -42,7 +37,7 @@ int get_packet(struct packet *message, int tag) {
            &status);
   lamport_clock =
       (message->lamport_clock > lamport_clock ? message->lamport_clock
-                                                    : lamport_clock) +
+                                              : lamport_clock) +
       1;
   return status.MPI_TAG;
 }
@@ -66,7 +61,12 @@ struct packet send_packet(int from, int to, int tag) {
 }
 
 struct packet brodcast_packet(int tag, int from, int size) {
+  return brodcast_packet_with_data(tag, from, size, 0);
+}
+
+struct packet brodcast_packet_with_data(int tag, int from, int size, int data) {
   struct packet message;
+  message.data = data;
   pthread_mutex_lock(&clock_mutex);
   lamport_clock++;
   pthread_mutex_unlock(&clock_mutex);
@@ -80,7 +80,6 @@ struct packet brodcast_packet(int tag, int from, int size) {
   pthread_mutex_unlock(&send_mutex);
   return message;
 }
-
 
 void internal_event() {
   pthread_mutex_lock(&clock_mutex);
