@@ -27,7 +27,6 @@ pthread_mutex_t pair_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t pair_cond = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char **argv) {
-  request_pair_queue = malloc((size * 2) * sizeof(struct packet));
   int provided;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
   init_packet_type();
@@ -42,16 +41,18 @@ int main(int argc, char **argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   println("%d starts work", rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
+  request_pair_queue = malloc((size * 2) * sizeof(struct packet));
+  request_pair_queue_size = 0;
   end_count = size;
   srand(rank);
 
   pthread_create(&thread, NULL, replay_thread, NULL);
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < CYCLE_SIZE; i++) {
     int my_pair = pair();
     // TODO: gun search
     battle(my_pair);
   }
-
+  
   println("My score is %d", score);
   brodcast_packet_with_data(END_REQUEST, rank, size, score);
   void *ret;

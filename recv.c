@@ -51,6 +51,11 @@ void *replay_thread() {
         winner_score = message.data;
         winner = message.rank;
       }
+      else if (message.data == winner_score) {
+        if (message.rank < winner) {
+          winner = message.rank;
+        }
+      }
       if (end_count == 0) {
         println("Winner is %d with score %d", winner, winner_score);
         pthread_exit(NULL);

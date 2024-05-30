@@ -22,8 +22,15 @@ int pair() {
   for (int i = request_pair_queue_size - 1; i >= 0; i--) {
     if (request_pair_queue[i].rank == rank) {
       index = i;
+      break;
     }
   }
+  // print request_pair_queue
+  // printf("Request pair queue %d: ", rank);
+  // for (int i = 0; i < request_pair_queue_size; i++) {
+  //   printf("%d ", request_pair_queue[i].rank);
+  // }
+  // printf("\n");
   int pair = -1;
   if (index % 2 == 1) {
     pair = request_pair_queue[index - 1].rank;
@@ -31,7 +38,7 @@ int pair() {
   int old_size = request_pair_queue_size;
   request_pair_queue_size = request_pair_queue_size % 2;
   if (request_pair_queue_size > 0) {
-    request_pair_queue[0] = request_pair_queue[old_size];
+    request_pair_queue[0] = request_pair_queue[old_size - 1];
   }
   pthread_mutex_unlock(&queue_mutex);
   return pair;
