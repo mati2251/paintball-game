@@ -4,7 +4,6 @@
 #include <stddef.h>
 
 int lamport_clock = 0;
-pthread_mutex_t clock_mutex;
 pthread_mutex_t send_mutex;
 MPI_Datatype MPI_PACKET;
 

@@ -7,6 +7,15 @@
 int winner = -1;
 int winner_score = -1;
 
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
+int K_temp = 3;
+int N = 8;
+extern int local_clock;
+extern int state;
+extern pthread_mutex_t state_mutex;
+extern pthread_cond_t access_cond;
+
 void *replay_thread() {
   struct packet message;
   while (true) {
@@ -61,6 +70,34 @@ void *replay_thread() {
         pthread_exit(NULL);
       }
       break;
+    }
+
+    case REQUEST: {
+    pthread_mutex_lock(&clock_mutex);
+    local_clock = max(local_clock, message.lamport_clock) + 1;
+    pthread_mutex_unlock(&clock_mutex);
+
+    struct request req = {message.lamport_clock, message.rank};
+    enqueue_request(req);
+    sort_request_queue();
+
+    pthread_mutex_lock(&state_mutex);
+    if (state == 0 || (state == 1 && compare_requests(&req, &rank) < 0)) {
+        send_packet(rank, message.rank, REPLY);
+    }
+    pthread_mutex_unlock(&state_mutex);
+    break;
+    }
+    case REPLY: {
+        pthread_mutex_lock(&state_mutex);
+        if (state == 0) {
+            response_count++;
+            if (response_count >= N - K_temp) {
+                pthread_cond_signal(&access_cond);
+            }
+        }
+        pthread_mutex_unlock(&state_mutex);
+        break;
     }
     }
   }

@@ -65,3 +65,4 @@ void battle(int my_pair) {
     send_packet_with_data(rank, my_pair, PAIR_RESULT, random);
   }
 }
+
