@@ -23,3 +23,5 @@ struct packet brodcast_packet(int tag, int from, int size);
 struct packet brodcast_packet_with_data(int tag, int from, int size, int data); 
 
 void internal_event();
+
+int get_lamport_clock();

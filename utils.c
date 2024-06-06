@@ -1,20 +1,25 @@
 #include "utils.h"
 #include "global.h"
+#include "log.h"
+#include "packet.h"
+#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 int pair() {
   internal_event();
   pthread_mutex_lock(&pair_response_mutex);
-  response_count = size;
+  pair_response_count = size;
   pthread_mutex_unlock(&pair_response_mutex);
+  pthread_mutex_lock(&pair_request_mutex);
   pair_request = brodcast_packet(PAIR_REQUEST, rank, size);
+  pthread_mutex_unlock(&pair_request_mutex);
   pthread_mutex_lock(&pair_response_mutex);
-  while (response_count > 0) {
+  while (pair_response_count > 0) {
     pthread_cond_wait(&pair_response_cond, &pair_response_mutex);
   }
   pthread_mutex_unlock(&pair_response_mutex);
-  pthread_mutex_lock(&queue_mutex);
+  pthread_mutex_lock(&request_pair_queue_mutex);
   internal_event();
   qsort(request_pair_queue, request_pair_queue_size, sizeof(struct packet),
         compare_packet);
@@ -40,7 +45,7 @@ int pair() {
   if (request_pair_queue_size > 0) {
     request_pair_queue[0] = request_pair_queue[old_size - 1];
   }
-  pthread_mutex_unlock(&queue_mutex);
+  pthread_mutex_unlock(&request_pair_queue_mutex);
   return pair;
 }
 
@@ -64,4 +69,41 @@ void battle(int my_pair) {
     }
     send_packet_with_data(rank, my_pair, PAIR_RESULT, random);
   }
+}
+
+void gun_search() {
+  println("%d is searching for a gun.", rank);
+  pthread_mutex_lock(&gun_state_mutex);
+  gun_access_state = PLAN;
+  pthread_mutex_unlock(&gun_state_mutex);
+  internal_event();
+  pthread_mutex_lock(&gun_response_mutex);
+  gun_response_count = size;
+  pthread_mutex_unlock(&gun_response_mutex);
+  gun_request = brodcast_packet(GUN_REQUEST, rank, size);
+  pthread_mutex_lock(&gun_response_mutex);
+  while (gun_response_count - GUNS_COUNT > 0) {
+    debug("Wait for gun response. %d", gun_response_count);
+    pthread_cond_wait(&gun_response_cond, &gun_response_mutex);
+  }
+  pthread_mutex_unlock(&gun_response_mutex);
+  pthread_mutex_lock(&gun_state_mutex);
+  gun_access_state = HELD;
+  pthread_mutex_unlock(&gun_state_mutex);
+  println("%d obtained a gun.", rank);
+}
+
+void gun_release() {
+  println("%d released a gun.", rank);
+  pthread_mutex_lock(&gun_state_mutex);
+  gun_access_state = RELEASED;
+  pthread_mutex_unlock(&gun_state_mutex);
+  internal_event();
+  pthread_mutex_lock(&request_gun_queue_mutex);
+  for (int i = 0; i < request_gun_queue_size; i++) {
+    debug("Send gun response to %d", request_gun_queue[i].rank)
+        send_packet(rank, request_gun_queue[i].rank, GUN_RESPONSE);
+  }
+  request_gun_queue_size = 0;
+  pthread_mutex_unlock(&request_gun_queue_mutex);
 }
