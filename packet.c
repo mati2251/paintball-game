@@ -86,3 +86,10 @@ void internal_event() {
   lamport_clock++;
   pthread_mutex_unlock(&clock_mutex);
 }
+
+int get_lamport_clock() {
+  pthread_mutex_lock(&clock_mutex);
+  int clock = lamport_clock;
+  pthread_mutex_unlock(&clock_mutex);
+  return clock;
+}

@@ -14,15 +14,25 @@
 int rank;
 int size;
 struct packet *request_pair_queue;
-int response_count = 0;
+int gun_response_count = 0;
+int pair_response_count = 0;
 int score = 0;
 struct packet pair_request;
 int end_count;
-
 int request_pair_queue_size;
-pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t pair_response_cond = PTHREAD_COND_INITIALIZER;
+int request_gun_queue_size;
+int gun_access_state;
+struct packet *request_gun_queue;
+struct packet gun_request;
+
+pthread_mutex_t request_pair_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t pair_response_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t pair_response_cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t pair_request_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t gun_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t gun_response_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t gun_response_cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t request_gun_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t pair_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t pair_cond = PTHREAD_COND_INITIALIZER;
 
@@ -43,20 +53,27 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   request_pair_queue = malloc((size * 2) * sizeof(struct packet));
   request_pair_queue_size = 0;
+  request_gun_queue = malloc((size * 2) * sizeof(struct packet));
+  request_gun_queue_size = 0;
   end_count = size;
-  srand(rank);
+  gun_access_state = RELEASED;
+  srand(time(NULL) + rank);
 
   pthread_create(&thread, NULL, replay_thread, NULL);
   for (int i = 0; i < CYCLE_SIZE; i++) {
     int my_pair = pair();
-    // TODO: gun search
+    if (my_pair != -1) {
+      gun_search();
+    }
     battle(my_pair);
+    if (my_pair != -1) {
+      gun_release();
+    }
   }
-  
+
   println("My score is %d", score);
   brodcast_packet_with_data(END_REQUEST, rank, size, score);
-  void *ret;
-  pthread_join(thread, ret);
+  pthread_join(thread, NULL);
   MPI_Finalize();
   return 0;
 }
